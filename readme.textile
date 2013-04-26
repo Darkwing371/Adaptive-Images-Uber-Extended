@@ -1,4 +1,4 @@
-This is a fork of Johann Heynes (johannheyne) "Adaptive Images (extendend)", based on Matthew Wilcox (mattwilcox) original code and idea of "Adaptive Images". Thank you both!
+This is a fork of Johann Heynes (johannheyne) “Adaptive Images (extendend)”, based on Matthew Wilcox (mattwilcox) original code and idea of “Adaptive Images”. Thank you both!
 
 
 h1. Adaptive Images (über-extended)
@@ -14,23 +14,33 @@ h1. Adaptive Images (über-extended)
 h2. Benefits of Adaptive Images In General
 
 * It safes bandwidth: takes care that your webpage only delivering images at a resolution not higher than the vistor would need (except you want it otherwise).
-* It provides structure: You only need to manage one full res image.
+* It provides structure: You only need to manage one full res image – NEW: Wordpress Detection Mode!
 * It is device agnostic: it works by detecting the size of the visitors screen.
 * It is CMS agnostic: it manages its own image resizing and will work on any CMS or even on flat HTML pages.
 * It is highly configurable:
 ** Choose where you want the cached files to be stored
-** Configure directories to ignore, whre you don’t want AI to apply
+** Configure directories to ignore, where you don’t want AI to apply
 
+h2. Benefits of Über-Extention
+
+* **Classic Mode:** just limit image sizes to visitors screen size
+* **Extended Size Terms:** provide url query string to generate specific image size; with accordance to visitors screen size
+* **Parallel Mode:** use both together, they are compatible now (=suggested usage by default)
+* **Wordpress Detection Mode:** “Re-retinize” Wordpress images – serve the pre-scaled Wordpress images according to pixel density
+** Drawback of Wordpress Detection Mode: manual cropping in Wordpress’ Image Editor destroys this ability.
+* Has a "sophisticated method":https://github.com/Darkwing371/Adaptive-Images-Uber-Extended/tree/ai-cookie-snippet.js available to detect visitors screen size and pixel density very acurately on newer mobile devices
+	 
 h2. How It Works
 * One line of JavaScript (uuuh!) sets a small cookie (ooouu!) containing the screen resolution and the pixel density of the users device when the page is about to load.
 * When an image is requested, .htaccess intercepts this request and passes it to adaptive-images.php, performing the logic to serve the appropriate image size.
+* In case something should go wrong, there are some clever fallbacks you can count on
 
 For further details on this concept, see Matt Wilcox’ original "Apaptive Images Homepage":http://adaptive-images.com/details.htm.
-And/or see *More Detailed Description* below for comparison between the forks.
+And/or see **More Detailed Description** below for comparison between the forks.
 
-h2. Install
+h2. Installation
 
-* Add the line of JavaScript you find in *adaptive-images-cookie-line.js* to your web pages head at the top most position possible.
+* Add the line of JavaScript you find in *ai-cookie-snippet.js* to your web pages head at the top most position possible.
 * Copy the adaptive-images folder into your web pages root directory.
 * Make sure the permission of the adaptive-images directory and ai-cache subdirectory is (at least) *755*.
 * Copy the .htaccess into your web pages root directory – or copy its code section in the existing .htaccess file.
@@ -42,7 +52,7 @@ Alternatively put the .htaccess in your images directory for example, and/or the
 
 h2. More Detailed Description
 
-h3. The Original "Adaptive Images" Behavior by Matt Wilcox
+h3. The Original “Adaptive Images” Behavior by Matt Wilcox
 
 We want that as a default, by setting *$config['enable_resolutions'] = TRUE* in setup.php.
 
@@ -53,7 +63,7 @@ This will resizes every image matching the rewrite conditions in .htaccess file.
 When disabled (*FALSE*), the requested images will be served in its original full size; as long as there’s no size-term attached via query string – see next paragraph. 
 
 
-h3. The More Specific Behavior of "Adaptive Images (extended)" by Johann Heyne
+h3. The More Specific Behavior of “Adaptive Images (extended)” by Johann Heyne
 
 &#060;img src="image.jpg?size=term" /&#062;
 
@@ -63,11 +73,11 @@ Now you can define, what size an image has to have on specific configurable desi
 *Cropping (cutting to fit)*
 You can define an aspect ratio for a term. All depending images will be cropped to that ratio after resizing is done.
 
-*Sharpen*
-You can define if you want to sharpen the resized images and even the amount of sharpness applied. 0 is no sharpening at all, up to 30 is subtile, more than 30 is really impacting, max is 500 (imagine that!).
+*Sharpening*
+You can define if you want to sharpen the resized images and even the amount of sharpening applied. 0 is no sharpening at all, up to 30 is subtile, more than 30 is really impacting, max is 500 (imagine that!).
 
 *JPEG quality*
-You can define the JPEG quality for a size term when device pixel ratio is at 1. If above 1 ( = "retina"), you can set a different JPEG compression level – very useful for applying "Netvlies Retina Revolution Trick":http://blog.netvlies.nl/design-interactie/retina-revolution/ if you want to use it. JPEG quality 100: of course is best; down to 70: is pleasant; below 40: really compressed (and small in size).
+You can define the JPEG quality for a size term when device pixel ratio is at 1. If above 1 ( = “retina”), you can set a different JPEG compression level – very useful for applying "Netvlies Retina Revolution Trick":http://blog.netvlies.nl/design-interactie/retina-revolution/ if you want to use it. JPEG quality 100: of course is best; down to 70: is pleasant; below 40: really compressed (and small in size).
 
 *Prevent cache*
 For developing, you might want to disable caching, to see changes of the setup and the images on every page reload. For this, in setup.php do:
@@ -81,14 +91,27 @@ But remember to turn caching on again, when the site is going live!
 This inserts some information into the generated images like: image dimensions, the aspect ratio, the device-width and pixel density.
 
 
-h3. The Even More Useful Additions of "Adaptive Images (über-extended)"
+h3. The Even More Useful Additions of “Adaptive Images (über-extended)”
 
 * Percentage breakpoints are generated by default; with smart sharpening, according to the amount of resizing done.
-* Makes us of "scalings": breakpoint sizes don’t dictate the size of the generated image width any more – if you want to.
+* Makes use of “scalings”: breakpoint sizes don’t dictate the size of the generated image width any more – if you want to.
 * Request and serve the original image by using special query strings like "?original" or "?size=fullsize".
 * Have a working fallback in case of cookie troubles: set desired fallback widths manually.
+* Use Progressive Sharpening: an amount of sharpening according to the amount of resize work done is applied
+* Wordpress Detection Mode
+
+**Wordpress Detection Mode**
+If you set this to true, Adaptive Images (üe) will watch if a file is requested, that goes by the naming convention of **{filename}-{width}x{height}.ext** (for example: testpic-640x480.jpg) – this is the way Wordpress saves the scaled images. In case a high-ppi display is detected and such an image is requested, AI(üe) will notice and intercept this request – and will look for the original image file (without the size suffix) to resize it with this dimensions but taking the pixel density into account. This way you can “re-retinize” your Wordpress images automatically using Adaptive Images.
+
+But note the drawback: when you edit an image (cropping, scaling, flipping) using the Worpdress Image Editor, you “destroy” this ability: Worpdress then saves another file by the naming convention of **{filename}-{hash}-{width}x{height}** (for example: atestpic-e34389845023-200x200.jpg). With this, there is no “big original” file any more and no information about what was done through editing (where did you crop? did you flip?). Wordpress Detection Mode then simply falls back to the normal file requested – skipping the “re-retinification”.
+
+Maybe in future improvements and when the project “Wordpress Integration for AI(üe)” is going to start, there might be a chance to hook directly in Wordpress Image Editor end prepare this file for us. But I can’t make promises. 
+
+
 		
 h2. Legal
 
-"Adaptive Images (über-extended)" is forked and adapted from "Adaptive Images (extended)" by Johann Heyne, using the original "Adaptive Images" code and idea by Matt Wilcox.
-"Adaptive Images" by Matt Wilcox is licensed under a "Creative Commons Attribution 3.0 Unported License":http://creativecommons.org/licenses/by/3.0/
+“Adaptive Images (über-extended)” is forked and adapted from “Adaptive Images (extended)” by Johann Heyne,
+using the original “Adaptive Images” code and idea of Matt Wilcox.
+
+“Adaptive Images” by Matt Wilcox is licensed under a "Creative Commons Attribution 3.0 Unported License":http://creativecommons.org/licenses/by/3.0/

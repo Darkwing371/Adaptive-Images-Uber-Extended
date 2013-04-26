@@ -37,7 +37,7 @@
  	// Fetch our outsourced settings and fill the variables below
     include('setup.php');
 
-    $enable_resolutions = $config['enable_resolutions']; 	// The resolution break-points to use (screen widths, in pixels)
+    $enable_resolutions = $config['enable_classicbehavior'];// The resolution break-points to use (screen widths, in pixels)
     $resolutions        = $config['resolutions']; 			// The resolution break-points to use (screen widths, in pixels)
     $breakpoints        = $config['breakpoints'];			// The image break-points to use in the src-parameter 
     $scalings		    = $config['scalings']; 				// NEW in AIue: the width of the generated images corresponting to the breakpoints
@@ -45,28 +45,26 @@
     $jpg_quality        = $config['jpg_quality']; 			// The quality of any generated JPGs on a scale of 0 to 100
     $jpg_quality_retina = $config['jpg_quality_retina']; 	// The quality of any generated JPGs on a scale of 0 to 100 for retina
     $sharpen            = $config['sharpen']['status']; 	// Shrinking images can blur details, perform a sharpen on re-scaled images?
-    $watch_cache        = $config['watch_cache']; 			// Check that the adapted image isn't stale (ensures updated source images are re-cached)
+    $sharpen_amount		= $config['sharpen']['amount'];		// Default amount of sharpening
+    $sharpen_progressive= $config['sharpen']['progressive'];// If progressive sharpening is wanted
+	$watch_cache        = $config['watch_cache']; 			// Check that the adapted image isn't stale (ensures updated source images are re-cached)
     $browser_cache      = $config['browser_cache']; 		// How long the BROWSER cache should last (seconds, minutes, hours, days. 7days by default)
     $debug_mode         = $config['debug_mode']; 			// Write new Image dimentions into the stored imageif(!$_GET['w']) $_GET['w'] = 100;
-    $prevent_cache      = $config['prevent_cache']; 		// always generate and deliver new images
+    $prevent_cache      = $config['prevent_cache']; 		// Always generate and deliver new images
     $setup_ratio_arr    = FALSE;							// Initializing crop ratio array variable for use afterwards
-    $setup_ratio		= FALSE;							// // Initializing crop ratio variable for use afterwards
-    $fallback			= null;								// triggers when fallback eventually becomes active
-    $fallback_mobile	= $config['fallback']['mobile'];	// the default fallback resolution for mobile devices
-    $fallback_desktop   = $config['fallback']['desktop'];	// the default fallback resolution for large/desktop displays	
-    $fullsize_terms		= $config['fullsize_terms'];		// assign the list of reserved terms to serve full size source image
-
+    $setup_ratio		= FALSE;							// Initializing crop ratio variable for use afterwards
+    $fallback			= null;								// Triggers when fallback eventually becomes active
+    $fallback_mobile	= $config['fallback']['mobile'];	// The default fallback resolution for mobile devices
+    $fallback_desktop   = $config['fallback']['desktop'];	// The default fallback resolution for large/desktop displays	
+    $fullsize_terms		= $config['fullsize_terms'];		// Assign the list of reserved terms to serve full size source image
+	$wp					= $config['wordpress_detection'];	// Assign if wordpress detection is wantetd by the user
     
     // Get all of the required data from the HTTP request
     $document_root  = $_SERVER['DOCUMENT_ROOT'];
     $requested_uri  = parse_url(urldecode($_SERVER['REQUEST_URI']), PHP_URL_PATH);
     $requested_file = basename($requested_uri);
-    $source_file    = $document_root.$requested_uri;
+	$source_file    = $document_root.$requested_uri;
     $resolution     = FALSE;	
-	
-	
-	
-	
 	
 	
 	
@@ -77,6 +75,68 @@
         header("Status: 404 Not Found");
         exit();
     	}
+	
+	
+
+	// Wordpress detection
+	if ($wp) {
+	
+		global $wp_width, $wp_height;
+		
+		// Take care of file name and stuff
+		$source_file_name = pathinfo($source_file, PATHINFO_FILENAME);
+		$source_file_ext  = pathinfo($source_file, PATHINFO_EXTENSION);
+		
+		// Have a look if a size string suffix is present
+		// In the form of: {filename}-{width}x{height}
+		$temp = explode('-', $source_file_name);
+		$sizes = explode('x', array_pop($temp));
+
+		// If yes: check if its usable
+		if ( (count($sizes) === 2)
+		 and (is_numeric($sizes[0])) 
+		 and (is_numeric($sizes[1])) ) 
+		 {
+		 	// And exctract it for further clever things
+			$wp_width  = (int) $sizes[0];
+			$wp_height = (int) $sizes[1];
+			
+			// In case image is said to be square, set up cropping of new image
+			if ( $wp_width == $wp_height ) $wp_setup_ratio = 1;
+			
+			// Just to be save
+			$wp = true;
+		 }
+		// If not: cancel Wordpress thing with this image
+		else { $wp = false; }
+		
+	}
+	
+	
+	
+	// Helper function to swap the suffixed file with the original file if needed
+	function wp_swap_source($old_source_file) {
+			
+		$ext  = pathinfo($old_source_file, PATHINFO_EXTENSION);
+		
+		$name = pathinfo($old_source_file, PATHINFO_FILENAME);
+		$name = explode('-', $name);
+		$temp = array_pop($name);
+		$name = implode('-', $name);
+		
+		$path = dirname($old_source_file) . '/';
+		
+
+		$new_source_file = $path . $name . '.' . $ext;
+		
+		// In case there cannot be found an unresized original file in Wordpress’ media directory
+		// Fallback to original file requested
+		// This happens when cropping was done manuall in Wordpress, e.g. on a thumbnail
+		// Why? The filename changes and no information about how and where cropping took place is stored 
+		if ( !file_exists($new_source_file) ) $new_source_file = $old_source_file;
+
+		return $new_source_file;
+	}
 
 
 
@@ -97,9 +157,11 @@
 	 	if ( in_array($_GET['size'], $fullsize_terms) ) original_requested();
 
 
-		// When a size term is provided, use specific settings instead of the defaults and classics
+		// When a valid size term is provided, use specific settings instead of the defaults and classics
         if ( isset($setup[$_GET['size']]['ratio'])) 				$setup_ratio_arr  = explode(':', $setup[$_GET['size']]['ratio']);
+		if ( isset($setup[$_GET['size']]['sharpen']['status']) ) 	$sharpen = $setup[$_GET['size']]['sharpen']['status'];
         if ( isset($setup[$_GET['size']]['sharpen']['amount']) ) 	$sharpen_amount = $setup[$_GET['size']]['sharpen']['amount'];
+		if ( isset($setup[$_GET['size']]['sharpen']['progressive']))$sharpen_progressive = $setup[$_GET['size']]['sharpen']['progressive'];
         if ( isset($setup[$_GET['size']]['jpg_quality']) ) 			$jpg_quality = $setup[$_GET['size']]['jpg_quality'];
         if ( isset($setup[$_GET['size']]['jpg_quality_retina']) ) 	$jpg_quality_retina = $setup[$_GET['size']]['jpg_quality_retina'];
 		if ( isset($setup[$_GET['size']]['fallback']['mobile']) )  	$fallback_mobile = $setup[$_GET['size']]['fallback']['mobile'];
@@ -150,9 +212,14 @@
 	
 	
 	// Helper function to handle request of original full size image
-	function original_requested() {
-		global $source_file, $browser_cache;
+	function original_requested($wp_original = true) {
+		global $source_file, $browser_cache, $wp;
 		
+		// In Wordpress detection mode, do REALLY serve the original file
+		// Except when "classic behavior" is off, then serve the requested file
+		if ($wp and $wp_original) $source_file = wp_swap_source($source_file);
+		
+		// Send the image
 		sendImage($source_file, $browser_cache);
         die();
 		}
@@ -160,7 +227,7 @@
 
 
 	// Serve the source file, in case "classic behavior" is off and no size terms are provided    
-    if( !$enable_resolutions ) {
+    if( !$enable_resolutions and !$wp) {
         if( !isset($sizeterm_data) || count($sizeterm_data) === 0 ) { original_requested(); }
     	}
 
@@ -174,7 +241,7 @@
     }
 
     // Does the UA string indicate this is a mobile?
-	// Shortcurt to achieve that; idea: commit b883be0 by nikcorg
+	// Shortcut to achieve that; idea: commit b883be0 by nikcorg
 	$is_mobile = is_mobile();
 
 
@@ -280,11 +347,15 @@
 		 
 	 
 	 
-	// Main function //
+	// ###################    M A I N   F U N C T I O N   #1   ################### //
 	// Generates the given cache file for the given source file with the given resolution
     function generateImage($source_file, $cache_file, $resolution) {
     
-        global $sharpen, $sharpen_amount, $jpg_quality, $jpg_quality_retina, $setup_ratio;
+        global $sharpen, $sharpen_amount, $sharpen_progressive;
+		global $jpg_quality, $jpg_quality_retina;
+		global $setup_ratio, $wp_setup_ratio;
+        global $is_highppi;
+		
 
 		// Double-check, if path exists and is writable
         $cache_dir = dirname($cache_file);
@@ -318,6 +389,37 @@
             return $source_file;
         }
         */
+        
+        // General quality setting
+        $jpg_quality_high = $jpg_quality;
+		if ($is_highppi) $jpg_quality = $jpg_quality_retina;
+		
+		
+		// TODO! ################
+		// Some clever stuff to only scale and compress when necessary
+		// Or myybe when to serve the original file
+		
+		// Do not compress additionaly, when image is already very small
+		if ( $width <= $resolution and $is_highppi) $jpg_quality = $jpg_quality_high;	
+		if ( $width <= 150 ) $jpg_quality = $jpg_quality_high;
+		
+		// Lower quality just a bit more, when image should become relatively huge
+		if ( $width > 1200 and $resolution > 1200 and !$is_highppi) $jpg_quality = $jpg_quality - 15;
+		if ( $width > 1200 and $is_highppi) $jpg_quality = $jpg_quality - 5;
+		
+		// In case no cropping needs to be done and no high-ppi compression, and no resizing at all, we can serve the source file
+		if (!$setup_ratio and $width <= $resolution and !$is_highppi) return $source_file;
+		if (!$wp_setup_ratio and $width <= $resolution and !$is_highppi) return $source_file;
+		
+
+		// Progressive Sharpening
+		if ( $sharpen_progressive ) {
+			$factor = $resolution / $width;
+			$sharpen_amount = $sharpen_amount * ( 1 - pow($factor,3) );
+			$sharpen_amount = ($sharpen_amount > 0) ? floor($sharpen_amount) : 0;
+			}
+		
+
     
         /* We need to resize the source image to the width of the resolution breakpoint we're working with */
         $ratio = $height / $width;
@@ -336,11 +438,16 @@
         $start_x = 0;
         $start_y = 0;
         
-        if ( $setup_ratio ) {
-        
+		
+		// In case something about cropping is to be done
+        if ( $setup_ratio or $wp_setup_ratio) {
+
             /* set height for new image */ 
             $orig_ratio = $new_width / $new_height;
-            $crop_ratio = $setup_ratio;
+            
+			// Set crop ration, but priorize the one of the size terms
+            $crop_ratio = ($setup_ratio) ? $setup_ratio : $wp_setup_ratio;
+			
             $ratio_diff = $orig_ratio / $crop_ratio;
             $ini_new_height = ceil($new_height * $ratio_diff);
         
@@ -389,6 +496,8 @@
         
         /* debug mode */
         global $debug_mode;
+		global $wp, $wp_width, $wp_height, $fallback;
+		
         if($debug_mode) {
         	
 			$color = imagecolorallocate($dst, 255, 0, 255); // Use fresh magenta
@@ -402,11 +511,18 @@
 	     	// second debug line: show size term if provided
 	     	$secondline = $_GET['size'];
 	     	imagestring( $dst, 5, 10, 20, $secondline, $color);
-		 
-		 	// third debug line: is fallback active?
-		 	global $fallback;
-		 	if ( $fallback ) $thirdline = "Fallback active!";
-		 	imagestring( $dst, 5, 10, 35, $thirdline, $color);
+
+			// Third line: Wpordpress detection active
+			if ( $wp ) $thirdline = "Wordpress detection is active!";
+			imagestring( $dst, 5, 10, 35, $thirdline, $color);
+			
+			// Fourth debug line: is fallback active?
+		 	if ( $fallback ) $fourthline = "Fallback active!";
+		 	imagestring( $dst, 5, 10, 50, $fourthline, $color);
+			
+			$fifthline = "Sharpen Amount: " . $sharpen_amount;
+			imagestring( $dst, 5, 10, 65, $fifthline, $color);
+			
         }
 
         
@@ -455,28 +571,30 @@
 
 
 
-    // Main function
-	// The cookie check and calculation of the image size
+    // ###################     M A I N   F U N C T I O N   #2    ################### //
+	// The cookie detection and calculation of the image size
     if (isset($_COOKIE['resolution']) ) {
         $cookie_value = $_COOKIE['resolution'];
     
         /* does the cookie look valid? [whole number, comma, potential floating number] */
         if (! preg_match("/^[0-9]+[,]*[0-9\.]+$/", "$cookie_value")) { /* no it doesn't look valid */
             setcookie("resolution", $cookie_value, time()-99999, '/'); /* delete the mangled cookie */
-        }
+        
+			// serve at least the wordpress images, where size is given
+			// TODO!
+		
+		}
         else {
-        	
-			 
-			/* the cookie is valid, do stuff with it */
+
+			// If cookie is valid, do all the stuff with it
 			// General preparations
             $cookie_data   = explode(",", $_COOKIE['resolution']);
             $client_width  = (int) $cookie_data[0]; /* the base resolution (CSS pixels) */
             $pixel_density = 1; /* set a default, used for non-retina style JS snippet */
-            if (@$cookie_data[1]) { /* the device's pixel density factor (physical pixels per CSS pixel) */
-                $pixel_density = $cookie_data[1]; }
-			if ( $pixel_density > 1 ) $jpg_quality = $jpg_quality_retina;
+            if ( @$cookie_data[1] ) $pixel_density = $cookie_data[1]; /* the device's pixel density factor (physical pixels per CSS pixel) */
+			global $is_highppi;
+			$is_highppi = ($pixel_density <= 1 ) ? false : $pixel_density;  
 			
-    		
 			
 	        	// In case a size term is submitted via query string
 	        	// Rewrite the breakpoints and scalings accordingly
@@ -489,7 +607,7 @@
 								if ( $item['unit'] === '%' )
 								   { $sizeterm_data[$key]['unit'] = 'px';
 									 $sizeterm_data[$key]['val'] = (int) ceil($client_width * $item['val'] / 100);
-									 } 	
+								   } 	
 								}
 
 						// Reset the resolutions and scalings array
@@ -516,24 +634,19 @@
 							
 							$i++;
 							}
-						
-						// Finally "fake client width" for the next steps	
-						//$client_width = 
-						//die( var_dump($scalings) );
-	
-					}  /* isset images_param */		
-				
-	
+
+							if ($wp) $source_file = wp_swap_source($source_file);
+							
+					}  /* isset images_param */	
+		
 			  
 			
 	 		// If no size term is submitted or size term related actions are finished
 			// Use original behavior and listen to the resolution breakpoints and scalings
-    
-			rsort($resolutions); /* make sure the supplied break-points are in reverse size order */
-            rsort($scalings);    /* same with scalings */
-            $resolution = $scalings[0]; /* by default use the largest corrsponding scaling size */
-
-            
+			$resolutions = array_reverse($resolutions); /* make sure the supplied break-points are in reverse size order */
+            $scalings = array_reverse($scalings);    /* same with scalings */
+            $resolution = $scalings[0]; /* by default use the largest corresponding scaling size */
+        
             /* if pixel density is not 1, then we need to be smart about adapting and fitting into the defined breakpoints */
             if($pixel_density > 1) {
             	
@@ -541,61 +654,74 @@
 				$pd_limit = 3;
 				$pixel_density = ($pixel_density>$pd_limit) ? $pixel_density=$pd_limit : $pixel_density;
 				
-                $total_width = $client_width * $pixel_density; /* required physical pixel width of the image */
+				
+				// In case Classic Behavior is off and no Wordpress detection wanted
+				// Do not make use of screen size and serve original file
+				if (!$enable_resolutions and !$wp) original_requested(false);
+				
+				
+				// Default: Make use of screen size and breakpoints
+                foreach ($resolutions as $break_point) { /* filter down */
+                    if ($client_width <= $break_point) {
+                        // Use ['scalings']	
+                        $key = array_search($break_point, $resolutions);
+                        $resolution = $scalings[$key];
+                        /*$resolution = $break_point;*/
+			           }
+                	}
 
-                /* the required image width is bigger than any existing value in $resolutions */
-                if($total_width > $resolutions[0]) {
-                    /* firstly, fit the CSS size into a break point ignoring the multiplier */
-                    foreach ($resolutions as $break_point) { /* filter down */
-                        if ($client_width <= $break_point) {
-                        	
-                        	// Introducing ['scalings']
-                        	$key = array_search($break_point, $resolutions);
-                            $resolution = $scalings[$key];
-                            /*$resolution = $break_point;*/
-							
-                        }
-                    }
-                    /* now apply the multiplier */
-                    $resolution = $resolution * $pixel_density;
-                }
-                /* the required image fits into the existing breakpoints in $resolutions */
-                else {
-                    foreach ($resolutions as $break_point) { /* filter down */
-                        if ($client_width <= $break_point) {
-							                          	
-                            // Use ['scalings'] here too	
-                            $key = array_search($break_point, $resolutions);
-                            $resolution = $scalings[$key];
-                            /*$resolution = $break_point;*/
 					
-                        }
-                    }
-					$resolution = $resolution * $pixel_density;
-                }
+				// If Wordpress detection is active: now is the time to do
+				// But only if no size term were submitted
+				if ($enable_resolutions and $wp and !$sizeterm_data) {
+						
+					// Tell different desired width: the width of pre-resized source image
+					// But let it not become bigger than the screen size	
+					if ( $resolution > $wp_width ) $resolution = $wp_width;
+					
+					// Tell a new source_file: the original in Wordpress media directory
+					// We force to regernerate new high-ppi size from there	
+					$source_file = wp_swap_source($source_file);
+					}
+				
+					
+				// If Classic Behavior is off, but Wordpress mode is on
+				// Let’s just "re-retinize" the requested file	
+				if (!$enable_resolutions and $wp and !$sizeterm_data) {
+					$resolution = $wp_width;
+					$source_file = wp_swap_source($source_file);			
+					}	
+
+				
+			 // now apply the density multiplier
+			 $resolution = $resolution * $pixel_density;
+			
+				
+			
             }
             else { /* pixel density is 1, just fit it into one of the breakpoints */
             	/*$total_width = $client_width;*/
-												
+				
+				// If Classic Mode is off: don’t make use of screen size
+				if (!$enable_resolutions) { original_requested(false); }			
+						
+				
+				// Default: make use of screen size and breakpoints								
                 foreach ($resolutions as $break_point) { /* filter down */
                      if ($client_width <= $break_point) {
-                  		
                     		// Yep: ['scalings']
                         	$key = array_search($break_point, $resolutions);
                             $resolution = $scalings[$key];                    	
                         	/*$resolution = $break_point;*/
-					    								
-                   	 		}		
-		        }
-            }
-     	
-			
-		} /* end of valid cookie stuff */
+					    	}		
+		        	}
 						
+            	}
+     				
+		} /* end of valid cookie stuff */
 } /* end of cookie detection */
 
 
-	if ( in_array($resolution, $fullsize_terms) ) { original_requested(); }
 
 
 
@@ -630,6 +756,8 @@
     // Ratio slug now only one value; second is obsolete since normalizing!
     $ratio_slug = '';
 	if ( $setup_ratio ) $ratio_slug = '-' . $setup_ratio;
+	// Suppress ratio slug if Wordpress "silent cropping" was active
+	if ( $wp_setup_ratio ) $ratio_slug = '';
 	
 	if ( $fallback ) $pixel_density = 1;
 	$pixel_density_slug = '-' . $pixel_density;
@@ -827,3 +955,13 @@
 
         return $img;
     }
+
+    
+    
+    
+    
+    
+    
+// Litte helper function for debugging	
+function v($variable) {	die( var_dump($variable) ); }	
+    

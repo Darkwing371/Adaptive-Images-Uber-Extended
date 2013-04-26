@@ -10,10 +10,11 @@
 - or use jpegoptim as an alternative
 - use pngout or optipng for optimizing png files
 - care of animated gifs, maybe with gifsicle
-->do this for smaller fil sizes and maybe better resize quality (and speed?)
+->do this for smaller file sizes and maybe better resize quality (and speed?)
 
 - convert color profiles, not only throw them away like GDlib does
 
 - implement a way of art direction and smart cropping, in accordance to css media queries
 - should we take care of extremly slim upright images, like 200x5000 (?)
-- serve image flat, when src dimensions > biggest breakpoint (?)
+
+- make a fine Wordpress integration

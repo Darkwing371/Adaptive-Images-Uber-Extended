@@ -76,16 +76,15 @@
 	$config['prevent_cache']        = TRUE; 		// default: false; true: images will resized on every image request
 
 	// while developing: inserts information like image dimensions, ratio and the device-width into the image
-	$config['debug_mode']           = TRUE;		// default: false
-
+	$config['debug_mode']           = TRUE;			// default: false
 
 
 
  
-	// ORIGINAL BEHAVIOR – Matts original device resolution depending solution
+	// CLASSIC BEHAVIOR – Matts original device resolution depending solution
 	// true: to have this original automatic resizer enabled; this is the default
 	// false: to only use the size terms in a query string and serve the original full res pic at a "native request"
-	$config['enable_resolutions']   = TRUE;  
+	$config['enable_classicbehavior']   = TRUE;  
 
 	// Here are our breakpoints for the default behavior; screen widths in pixels; ascending order
 	$config['resolutions']          = array(0, 320, 480, 640, 1080, 1440, 2160, 2880);
@@ -94,6 +93,17 @@
 	// These image widths are served, when a specific resolution is present
 	$config['scalings']             = array(0, 320, 480, 640,  960, 1440, 1920, 2880); 
 
+
+
+	// In addition to classic behavior, you can now:
+	// Enable detection of Wordpress’ size suffix string in image file names
+	// If one present: recalculate the needed size according to the pixel density
+	// This way, you’re able to "re-retinize" your images
+	// You can use this manually too, by naming images for instance: {thename}-{100x150}.{ext} 
+	$config['wordpress_detection']	=	FALSE;		// default: false
+	
+	
+	
 	// This is part of Johanns extended version introducing the "size terms"
 	// Configure new breakpoints here; with names and width values
 	// These values should be equal to the resolutions above, to not confuse things more than necessary
@@ -112,7 +122,7 @@
 	// If you receive the error message, align the sizes of the three arrays above!
 	$line = __LINE__; 	$line = $line - 1;
 	$error_str = "Error in Adaptive Images: all array sizes MUST be equal to work correctly!<br>
-			    Check " . __FILE__ . " at line " . $line . " to solve this.";	 
+			      Check " . __FILE__ . " at line " . $line . " to solve this.";	 
 	//if ( count($config['breakpoints']) != count($config['scalings']) or (count($config['resolutions']) != count($config['scalings'])) ) { exit($error_str); }
 	
 	
@@ -124,10 +134,11 @@
 	
 							
 	// Some settings concerning the default behavior image quality
-	$config['jpg_quality']          = 90;			// quality of a generated JPG at device pixel ratio of 1; values: 0 to 100; default: 80
-	$config['jpg_quality_retina']   = 40;			// use for netvlies' compression trick; 100 to 0; default: 50
-	$config['sharpen']['status']    = TRUE;			// enables sharpening of resized images
-	$config['sharpen']['amount']    = 20;			// 0 is none, 30 is pleasant, max is 500
+	$config['jpg_quality']          	= 90;			// quality of a generated JPG at device pixel ratio of 1; values: 0 to 100; default: 80
+	$config['jpg_quality_retina']   	= 60;			// use for netvlies' compression trick; 100 to 0; default: 50
+	$config['sharpen']['status']    	= TRUE;			// enables sharpening of resized images
+	$config['sharpen']['amount']    	= 60;			// 0 is none, 30 is pleasant, max is 500
+	$config['sharpen']['progressive']	= TRUE;			// Recalculates sharpening amount according to image shrinking
 	
 	
 	// register terms to reserve for serving the full size source image in any case
@@ -150,32 +161,36 @@
 	// You MUST use units like % or px! Otherwise it gets ignored and results in '100%'
 	// Usage afterwards: <img src="image.jpg?size=term" />
 	$setup['term']['breakpoints']['default'] = '0'; // means, that the source file is served. better to specify a px value here!
-	$setup['term']['breakpoints']['normal'] = '0';
-	$setup['term']['breakpoints']['huge'] = 'original';
+	$setup['term']['breakpoints']['normal'] = '960';
+	$setup['term']['breakpoints']['huge'] = '1440';
 	//$setup['term']['ratio'] = '1.6181:1';
 	$setup['term']['jpg_quality'] = 95;
-	$setup['term']['jpg_quality_retina'] = 40;
+	$setup['term']['jpg_quality_retina'] = 45;
 	$setup['term']['sharpen']['amount'] = 40;
 	$setup['term']['fallback']['mobile'] = '320px';		// must be pixel!
 	$setup['term']['fallback']['desktop'] = '1024px';	// must be pixel!
 
 	
-	// set up own size terms here
+	
+	// ###   set up own size terms here   ###
 	
 	// zoom size term: when image needs to be displayed in a lightbox or something
 	$setup['zoom']['breakpoints']['default']	= '0';
-	$setup['zoom']['breakpoints']['micro']		= '90px';
-	$setup['zoom']['breakpoints']['mini'] 		= '150px';
-	$setup['zoom']['breakpoints']['small'] 		= '250px';
-	$setup['zoom']['breakpoints']['medium']		= '350px';
-	$setup['zoom']['breakpoints']['normal'] 	= '420px';
-	$setup['zoom']['breakpoints']['large'] 		= '550px';
-	$setup['zoom']['breakpoints']['huge'] 		= '650px';
+	$setup['zoom']['breakpoints']['micro']		= '300%';
+	$setup['zoom']['breakpoints']['mini'] 		= '200%';
+	$setup['zoom']['breakpoints']['small'] 		= '150%';
+	$setup['zoom']['breakpoints']['medium']		= '100%';
+	$setup['zoom']['breakpoints']['normal'] 	= '100%';
+	$setup['zoom']['breakpoints']['large'] 		= '100%';
+	$setup['zoom']['breakpoints']['huge'] 		= '100%';
 	$setup['zoom']['jpg_quality'] 				= 96;
 	$setup['zoom']['jpg_quality_retina'] 		= 70;
+	$setup['zoom']['sharpen']['status'] 		= TRUE;
 	$setup['zoom']['sharpen']['amount'] 		= 40;
-	$setup['zoom']['fallback']['mobile'] 		= '960px';		// must be pixel
-	$setup['zoom']['fallback']['desktop'] 		= '1111px';		// must be pixel
+	$setup['zoom']['sharpen']['progressive'] 	= TRUE;
+	$setup['zoom']['fallback']['mobile'] 		= '640px';		// must be pixel
+	$setup['zoom']['fallback']['desktop'] 		= '1440px';		// must be pixel
+
 	
 
 
@@ -186,7 +201,8 @@
 	// NOTE: use carefully! This percentage things spams your ai-cache directory with all kinds of calculated resolutions!
 	for ($percent = 1; $percent < 100; $percent++) {
 		$setup[$percent . '%']['breakpoints']['default'] = $percent . '%';
-		$setup[$percent . '%']['sharpen']['amount'] = floor( (100 - $percent) / 1.3); // slightly sharpen according to size    
+		$setup[$percent . '%']['sharpen']['amount'] = floor( (100 - $percent) / 1.3); // slightly sharpen according to size   
+		$setup[$percent . '%']['sharpen']['progressive'] = FALSE;
 		}
 	
 	

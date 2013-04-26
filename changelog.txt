@@ -1,3 +1,18 @@
+version 2.0 (2013-04-08) -------------------------------------------------------------
+
+	* Bumped to version 2.0 - infancy is over
+	* Massive rethinking; heavyweight commits; a lot of fixings and feature additions
+	* Improved handling of 'full size terms'
+	* Cookie deletion in php now actually works (am I the only one who had problems with it?)
+	* Made size terms work consistently (I didn’t see how this was meant to work before.)
+	* Introducing 'Parallel Mode': Size Terms and Classic Behavior usable together
+	* Introducing 'Wordpress Detection Mode': "re-retinize" pre-cropped Wordpress pictures!
+	* Progressive sharpening: sharpening according to resize amount
+	* Simple progressive image quality/size trade off built in
+	* .htaccess: alternate way of making file extentions a bit case insensitive
+	  [NC] just dind’t work.
+	
+
 version 1.0.2 (2013-04-20 ------------------------------------------------------------
 
 	* Fixed fatal fallback problem: fallback now actually works

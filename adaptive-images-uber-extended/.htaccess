@@ -35,7 +35,7 @@
 		# and not stored inside a blacklisted directory name above,
 		# is sent to adaptive-images.php to select and/or generate appropriately sized versions.
 	
-		RewriteRule \.(?:jpe?g|gif|png)$ adaptive-images/adaptive-images.php [NC]
+		RewriteRule \.(?:jpe?g|gif|png|Jpe?g|JPe?g|JPE?g|JPE?G|Gif|GIf|GIF|Png|PNg|PNG)$ adaptive-images/adaptive-images.php
 
 
 </IfModule>
