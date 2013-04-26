@@ -72,11 +72,11 @@
 	
 	// other caching settings
 	$config['browser_cache']        = 60 * 60 * 24;	// period of time in seconds the images will stay in cache of browsers	
-	//$config['browser_cache']		= 0;			// enable this line line during developement!
-	$config['prevent_cache']        = FALSE; 		// default: false; true: images will resized on every image request
+	$config['browser_cache']		= 0;			// enable this line line during developement!
+	$config['prevent_cache']        = TRUE; 		// default: false; true: images will resized on every image request
 
 	// while developing: inserts information like image dimensions, ratio and the device-width into the image
-	$config['debug_mode']           = FALSE;		// default: false
+	$config['debug_mode']           = TRUE;		// default: false
 
 
 
@@ -88,17 +88,15 @@
 	$config['enable_resolutions']   = TRUE;  
 
 	// Here are our breakpoints for the default behavior; screen widths in pixels; ascending order
-	$config['resolutions']          = array(0, 320, 480, 640, 1080, 1440, 2048, 2880);
+	$config['resolutions']          = array(0, 320, 480, 640, 1080, 1440, 2160, 2880);
 
 	// Now new in AIue: kind of 'one size fits all' values, corresponding to the resolutions above
 	// These image widths are served, when a specific resolution is present
 	$config['scalings']             = array(0, 320, 480, 640,  960, 1440, 1920, 2880); 
 
 	// This is part of Johanns extended version introducing the "size terms"
-	// Configure the internal breakpoint names here
+	// Configure new breakpoints here; with names and width values
 	// These values should be equal to the resolutions above, to not confuse things more than necessary
-	// NOTE: the corresponting ['scalings'] from above do apply anyway!
-	// That’s why the array sizes MUST be equal in any case!
 	$config['breakpoints'] = array(
 	                                 'default' =>    0,
 	                                 'micro'   =>  320,
@@ -106,7 +104,7 @@
 	                                 'small'   =>  640,
 	                                 'medium'  => 1080,
 	                                 'normal'  => 1440,
-	                                 'large'   => 2048,
+	                                 'large'   => 2160,
 	                                 'huge'    => 2880
 	                              );
 							
@@ -115,53 +113,77 @@
 	$line = __LINE__; 	$line = $line - 1;
 	$error_str = "Error in Adaptive Images: all array sizes MUST be equal to work correctly!<br>
 			    Check " . __FILE__ . " at line " . $line . " to solve this.";	 
-	if ( count($config['breakpoints']) != count($config['scalings']) or (count($config['resolutions']) != count($config['scalings'])) ) { exit($error_str); }
+	//if ( count($config['breakpoints']) != count($config['scalings']) or (count($config['resolutions']) != count($config['scalings'])) ) { exit($error_str); }
 	
 	
 	// Setting the two fallback widths for mobile and desktop
 	// can be overridden by size terms later
 	// MUST be pixel or unitless (meaning pixel)
 	$config['fallback']['mobile']  =  '480px';
-	$config['fallback']['desktop'] = '1440px';
+	$config['fallback']['desktop'] = '1280px';
 	
 							
 	// Some settings concerning the default behavior image quality
 	$config['jpg_quality']          = 90;			// quality of a generated JPG at device pixel ratio of 1; values: 0 to 100; default: 80
-	$config['jpg_quality_retina']   = 30;			// use for netvlies' compression trick; 100 to 0; default: 50
+	$config['jpg_quality_retina']   = 40;			// use for netvlies' compression trick; 100 to 0; default: 50
 	$config['sharpen']['status']    = TRUE;			// enables sharpening of resized images
 	$config['sharpen']['amount']    = 20;			// 0 is none, 30 is pleasant, max is 500
 	
 	
-	
+	// register terms to reserve for serving the full size source image in any case
+	$config['fullsize_terms']		= array(
+											'original',
+											'full',
+											'fullsize',
+											'source',
+											'src'
+											 );
 	
 	
 	// EXTENDED BEHAVIOR
 	// Define the size terms: these are the query strings used to append on the image file
+	// If you set points wisely, you can save a lot of diskspace – since not every intermediate size gets cached on the disk
 	// NOTE: 'original', 'full', 'fullsize', 'source' and 'src' are reserved terms!
 	// They’re hardcoded to serve the original source image in any case!
-	// We need that, while having $config['enable_resolutions'] = TRUE; Matts original behavior
+	// We would need that, while having $config['enable_resolutions'] = TRUE; Matts original behavior
 	// Below this is just an example how to set it up
 	// You MUST use units like % or px! Otherwise it gets ignored and results in '100%'
 	// Usage afterwards: <img src="image.jpg?size=term" />
-	$setup['term']['breakpoints']['default'] = '100%';
-	$setup['term']['breakpoints']['normal'] = '1024px';
-	$setup['term']['ratio'] = '1.6181:1';
+	$setup['term']['breakpoints']['default'] = '0'; // means, that the source file is served. better to specify a px value here!
+	$setup['term']['breakpoints']['normal'] = '0';
+	$setup['term']['breakpoints']['huge'] = 'original';
+	//$setup['term']['ratio'] = '1.6181:1';
 	$setup['term']['jpg_quality'] = 95;
 	$setup['term']['jpg_quality_retina'] = 40;
 	$setup['term']['sharpen']['amount'] = 40;
-	$setup['term']['fallback']['mobile'] = '320px';		// must be pixel
-	$setup['term']['fallback']['desktop'] = '1024px';	// must be pixel
+	$setup['term']['fallback']['mobile'] = '320px';		// must be pixel!
+	$setup['term']['fallback']['desktop'] = '1024px';	// must be pixel!
 
-	// set up your own size terms here; use $config['breakpoints'] = array( '{strings}' ) as breakpoints
 	
+	// set up own size terms here
+	
+	// zoom size term: when image needs to be displayed in a lightbox or something
+	$setup['zoom']['breakpoints']['default']	= '0';
+	$setup['zoom']['breakpoints']['micro']		= '90px';
+	$setup['zoom']['breakpoints']['mini'] 		= '150px';
+	$setup['zoom']['breakpoints']['small'] 		= '250px';
+	$setup['zoom']['breakpoints']['medium']		= '350px';
+	$setup['zoom']['breakpoints']['normal'] 	= '420px';
+	$setup['zoom']['breakpoints']['large'] 		= '550px';
+	$setup['zoom']['breakpoints']['huge'] 		= '650px';
+	$setup['zoom']['jpg_quality'] 				= 96;
+	$setup['zoom']['jpg_quality_retina'] 		= 70;
+	$setup['zoom']['sharpen']['amount'] 		= 40;
+	$setup['zoom']['fallback']['mobile'] 		= '960px';		// must be pixel
+	$setup['zoom']['fallback']['desktop'] 		= '1111px';		// must be pixel
 	
 
 
 	// UBER-EXTENDED BEHAVIOR
 	// Prepare percentage breakpoints as a built-in default to have it present
 	// Maybe useful for fluid layouts
-	// A smart amout of sharpening is applied, according to the amoutn of resizing done
-	// NOTE: use carfully! This percentage things spams your ai-cache directory with all kinds of calculated resolutions!
+	// A smart amout of sharpening is applied, according to the amount of resizing done
+	// NOTE: use carefully! This percentage things spams your ai-cache directory with all kinds of calculated resolutions!
 	for ($percent = 1; $percent < 100; $percent++) {
 		$setup[$percent . '%']['breakpoints']['default'] = $percent . '%';
 		$setup[$percent . '%']['sharpen']['amount'] = floor( (100 - $percent) / 1.3); // slightly sharpen according to size    

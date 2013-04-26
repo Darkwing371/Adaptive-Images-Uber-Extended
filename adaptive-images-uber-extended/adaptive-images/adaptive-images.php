@@ -22,6 +22,18 @@
  * 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+ 
+     /* check that PHP has the GD library available to use for image re-sizing */
+    if (!extension_loaded('gd')) { 						/* it's not loaded */
+        if (!function_exists('dl') || !dl('gd.so')) { 	/* and we can't load it either */
+            /* no GD available, so deliver the image straight up */
+            trigger_error('You must enable the GD extension to make use of Adaptive Images', E_USER_WARNING);
+            sendImage($source_file, $browser_cache);
+        }
+    }
+ 
+ 
+ 
  	// Fetch our outsourced settings and fill the variables below
     include('setup.php');
 
@@ -42,16 +54,50 @@
     $fallback			= null;								// triggers when fallback eventually becomes active
     $fallback_mobile	= $config['fallback']['mobile'];	// the default fallback resolution for mobile devices
     $fallback_desktop   = $config['fallback']['desktop'];	// the default fallback resolution for large/desktop displays	
+    $fullsize_terms		= $config['fullsize_terms'];		// assign the list of reserved terms to serve full size source image
+
     
+    // Get all of the required data from the HTTP request
+    $document_root  = $_SERVER['DOCUMENT_ROOT'];
+    $requested_uri  = parse_url(urldecode($_SERVER['REQUEST_URI']), PHP_URL_PATH);
+    $requested_file = basename($requested_uri);
+    $source_file    = $document_root.$requested_uri;
+    $resolution     = FALSE;	
+	
+	
+	
+	
 	
 	
 	
 	// ###  Adaptive Images starts here  ###
 	
-	// Assess query string
+	/* check if the requested file exists at all */
+    if (!file_exists($source_file)) {
+        header("Status: 404 Not Found");
+        exit();
+    	}
+
+
+
+	// The 'shortcut' to full res image
+	// When just the param is used, without any value
+	// Test if this param is a reserved fullsize term 
+	foreach ( $fullsize_terms as $fst) {
+		if ( isset($_GET[$fst]) ) original_requested();
+		}
+	
+	
+	
+	// Assess query string if one present with a size term
     if ( isset($_GET['size']) ) {
-        
-		// when a size term is provided, use specific settings instead of default
+    	
+		// Check query string whether to serve the source file
+	 	// Reserved value for size param: 'original', 'full', 'fullsize', 'source', 'src'
+	 	if ( in_array($_GET['size'], $fullsize_terms) ) original_requested();
+
+
+		// When a size term is provided, use specific settings instead of the defaults and classics
         if ( isset($setup[$_GET['size']]['ratio'])) 				$setup_ratio_arr  = explode(':', $setup[$_GET['size']]['ratio']);
         if ( isset($setup[$_GET['size']]['sharpen']['amount']) ) 	$sharpen_amount = $setup[$_GET['size']]['sharpen']['amount'];
         if ( isset($setup[$_GET['size']]['jpg_quality']) ) 			$jpg_quality = $setup[$_GET['size']]['jpg_quality'];
@@ -60,15 +106,34 @@
 		if ( isset($setup[$_GET['size']]['fallback']['desktop']) ) 	$fallback_desktop = $setup[$_GET['size']]['fallback']['desktop']; 
     
     
-        /* get the image size and build the breakpoint-string */
+        // Put image size values (scalings) of breakpoint names in an array
         foreach($setup[$_GET['size']]['breakpoints'] as $key => $value) {
-            $param_array[] = $key . '-' . $value;
-        	}
-        $param = implode( '_', $param_array );
-        $_GET['bp'] = $param;
-		
-		
-		
+            	
+					if ($key == 'default') {
+						$sizeterm_data[$key]['unit'] = 'px';
+		                $sizeterm_data[$key]['val'] = $value;
+						}
+					
+					$x = explode('%', $value );
+		            if(count($x) === 2) {
+		                $sizeterm_data[$key]['unit'] = '%';
+		                $sizeterm_data[$key]['val'] = $x[0];
+		            	}	
+					
+					$x = explode('px', $value );
+		            if(count($x) === 2) {
+		                $sizeterm_data[$key]['unit'] = 'px';
+		                $sizeterm_data[$key]['val'] = $x[0];
+		            	}	
+					
+					if ( $value == 'original' ) {
+		                $sizeterm_data[$key]['unit'] = 'original';
+		                $sizeterm_data[$key]['val'] = 'original';				
+						}		
+				}
+      
+
+
 		// Sanitize the ratio values, normalize, and reduce fraction to 1 digit maximum
 		$setup_ratio_arr[0] = (float) str_replace( ',', '.', $setup_ratio_arr[0]);
 		$setup_ratio_arr[1] = (float) str_replace( ',', '.', $setup_ratio_arr[1]);
@@ -78,87 +143,28 @@
 		
 		$setup_ratio = $setup_ratio_arr[0];		// we only need to use this one now
 		
+
+}  /* End of query string assessment */
+
+	
+	
+	
+	// Helper function to handle request of original full size image
+	function original_requested() {
+		global $source_file, $browser_cache;
 		
-	 
-	 
-	 
-	 // Check query string whether to serve the source file
-	 // Reserved value for size param: 'original', 'full', 'fullsize', 'source', 'src', '100%'
-	 if ( ($_GET['size'] == 'original') 
-	   or ($_GET['size'] == 'full')
-	   or ($_GET['size'] == 'fullsize') 
-	   or ($_GET['size'] == 'source')
-	   or ($_GET['size'] == 'src')
-	   or ($_GET['size'] == '100%') ) {
-	   	$original_requested = true;
-	 }
-
-    }  /* End of query string assessment */
-
-
-
-
-
-	// The 'shortcut'
-	// When just the param is used, without any value, to request the original picture 
-	// Just another check if the original image is requested
-	if ( isset($_GET['original']) 
-	  or isset($_GET['full'])
-	  or ($_GET['size'] == 'fullsize')
-	  or isset($_GET['source'])
-	  or isset($_GET['src'])
-	  or isset($_GET['100%']) ) {
-		$original_requested = true;		
+		sendImage($source_file, $browser_cache);
+        die();
 		}
-    
 	
-	
-	
-	
-	
-    /* get the image parameter-string and convert it into an array */
-    if( isset($_GET['bp']) ) {
-    
-        $temp = explode('_', $_GET['bp']);
-        foreach($temp as $key => $item)  {
-            $arr = explode('-', $item);
-            $x = explode('%', $arr[1] );
-            if(count($x) === 2) {
-                $images_param[$arr[0]]['unit'] = '%';
-                $images_param[$arr[0]]['val'] = $x[0];
-            }
-            $x = explode('px', $arr[1] );
-            if(count($x) === 2) {
-                $images_param[$arr[0]]['unit'] = 'px';
-                $images_param[$arr[0]]['val'] = $x[0];
-            }
-        }
-    }
 
 
-
-    /* get all of the required data from the HTTP request */
-    $document_root  = $_SERVER['DOCUMENT_ROOT'];
-    $requested_uri  = parse_url(urldecode($_SERVER['REQUEST_URI']), PHP_URL_PATH);
-    $requested_file = basename($requested_uri);
-    $source_file    = $document_root.$requested_uri;
-    $resolution     = FALSE;
-
-	// Serve the source file, in case there are no plausible breakpoints are set    
+	// Serve the source file, in case "classic behavior" is off and no size terms are provided    
     if( !$enable_resolutions ) {
-        if( !isset($images_param) || count($images_param) === 0 ) {
-            sendImage($source_file, $browser_cache);
-            die();
-        }
-    }
+        if( !isset($sizeterm_data) || count($sizeterm_data) === 0 ) { original_requested(); }
+    	}
 
 	
-	// Is the original full size image explicitely requested?
-	if ( $original_requested ) {
-	     sendImage($source_file, $browser_cache);
-            die();
-	}
-
 
     /* Mobile detection 
     NOTE: only used in the event a cookie isn't available. */
@@ -171,6 +177,8 @@
 	// Shortcurt to achieve that; idea: commit b883be0 by nikcorg
 	$is_mobile = is_mobile();
 
+
+
     /* does the $cache_path directory exist already? */
     if (!is_dir("$document_root/$cache_path")) { 					/* no */
         if (!mkdir("$document_root/$cache_path", 0755, true)) { 	/* so make it */
@@ -180,6 +188,7 @@
             }
         }
     }
+
 
     /* helper function: Send headers and returns an image. */
     function sendImage($filename, $browser_cache) {
@@ -198,6 +207,8 @@
         exit();
     }
 
+    
+	
     /* helper function: Create and send an image with an error message. */
     function sendErrorImage($message) {
         /* get all of the required data from the HTTP request */
@@ -269,13 +280,13 @@
 		 
 	 
 	 
-	 
+	// Main function //
 	// Generates the given cache file for the given source file with the given resolution
     function generateImage($source_file, $cache_file, $resolution) {
     
         global $sharpen, $sharpen_amount, $jpg_quality, $jpg_quality_retina, $setup_ratio;
 
-		// Double-check earlier, if path exists and is writable
+		// Double-check, if path exists and is writable
         $cache_dir = dirname($cache_file);
 
         /* does the directory exist already? */
@@ -311,10 +322,10 @@
         /* We need to resize the source image to the width of the resolution breakpoint we're working with */
         $ratio = $height / $width;
         if ($width <= $resolution) {
-            $new_width  = $width;
+        		$new_width  = $width;
         }
         else {
-            $new_width  = $resolution;
+            	$new_width  = $resolution;
         }
     
         $new_height = ceil($new_width * $ratio);
@@ -436,64 +447,113 @@
 
         return $cache_file;
 		
-    }  /* end of generateImage()
+    }  /* end of generateImage() */
 
 
 
 
 
-    /* check if the file exists at all */
-    if (!file_exists($source_file)) {
-        header("Status: 404 Not Found");
-        exit();
-    }
 
-    /* check that PHP has the GD library available to use for image re-sizing */
-    if (!extension_loaded('gd')) { 						/* it's not loaded */
-        if (!function_exists('dl') || !dl('gd.so')) { 	/* and we can't load it either */
-            /* no GD available, so deliver the image straight up */
-            trigger_error('You must enable the GD extension to make use of Adaptive Images', E_USER_WARNING);
-            sendImage($source_file, $browser_cache);
-        }
-    }
 
-    /* Check to see if a valid cookie exists */
+    // Main function
+	// The cookie check and calculation of the image size
     if (isset($_COOKIE['resolution']) ) {
         $cookie_value = $_COOKIE['resolution'];
     
         /* does the cookie look valid? [whole number, comma, potential floating number] */
         if (! preg_match("/^[0-9]+[,]*[0-9\.]+$/", "$cookie_value")) { /* no it doesn't look valid */
-            setcookie("resolution", "$cookie_value", time()-100); /* delete the mangled cookie */
+            setcookie("resolution", $cookie_value, time()-99999, '/'); /* delete the mangled cookie */
         }
         else {
-            /* the cookie is valid, do stuff with it */
+        	
+			 
+			/* the cookie is valid, do stuff with it */
+			// General preparations
             $cookie_data   = explode(",", $_COOKIE['resolution']);
             $client_width  = (int) $cookie_data[0]; /* the base resolution (CSS pixels) */
-            $total_width   = $client_width;
             $pixel_density = 1; /* set a default, used for non-retina style JS snippet */
             if (@$cookie_data[1]) { /* the device's pixel density factor (physical pixels per CSS pixel) */
-                $pixel_density = $cookie_data[1];
-            }
-           
-           if ( $pixel_density > 1 ) $jpg_quality = $jpg_quality_retina;
-            
-            rsort($resolutions); /* make sure the supplied break-points are in reverse size order */
-            rsort($scalings);    /* same with scalings */
-            $resolution = $resolutions[0]; /* by default use the largest supported break-point */
+                $pixel_density = $cookie_data[1]; }
+			if ( $pixel_density > 1 ) $jpg_quality = $jpg_quality_retina;
+			
+    		
+			
+	        	// In case a size term is submitted via query string
+	        	// Rewrite the breakpoints and scalings accordingly
+	        	// Size term breakpoints become the new resolution breakpoints for use in "classic behavior" later
+	        	if(isset($sizeterm_data)) {
+	      				
+						// Translate %-values of the visitors screen in px values 
+			        	foreach($sizeterm_data as $key => $item) {
 
+								if ( $item['unit'] === '%' )
+								   { $sizeterm_data[$key]['unit'] = 'px';
+									 $sizeterm_data[$key]['val'] = (int) ceil($client_width * $item['val'] / 100);
+									 } 	
+								}
+
+						// Reset the resolutions and scalings array
+						$resolutions = array();
+						$scalings = array();
+						$i = 0;		/* Awkard: I saw no other chance to do the filling, as with a counter ... */
+						
+						foreach ($breakpoints as $breakpoint => $value) {
+	
+							// Fill resolutions with widths of breakpoint default values from setup	
+							$resolutions[$i] = $value;
+							
+							// Fill scalings (=resulting image sizes per breakpoint)
+							// Use defined size values of size terms from setup
+							if ( isset($sizeterm_data[$breakpoint]) ) {
+								
+								$scalings[$i] = (int) $sizeterm_data[$breakpoint]['val'];
+							} 
+							// If none is set at this position, use the one before again
+							// (Or a fallback in some way?)
+							else {
+								 
+								  $scalings[$i] = $scalings[$i-1]; }
+							
+							$i++;
+							}
+						
+						// Finally "fake client width" for the next steps	
+						//$client_width = 
+						//die( var_dump($scalings) );
+	
+					}  /* isset images_param */		
+				
+	
+			  
+			
+	 		// If no size term is submitted or size term related actions are finished
+			// Use original behavior and listen to the resolution breakpoints and scalings
+    
+			rsort($resolutions); /* make sure the supplied break-points are in reverse size order */
+            rsort($scalings);    /* same with scalings */
+            $resolution = $scalings[0]; /* by default use the largest corrsponding scaling size */
+
+            
             /* if pixel density is not 1, then we need to be smart about adapting and fitting into the defined breakpoints */
             if($pixel_density > 1) {
+            	
+				// limit pixel density
+				$pd_limit = 3;
+				$pixel_density = ($pixel_density>$pd_limit) ? $pixel_density=$pd_limit : $pixel_density;
+				
                 $total_width = $client_width * $pixel_density; /* required physical pixel width of the image */
 
                 /* the required image width is bigger than any existing value in $resolutions */
                 if($total_width > $resolutions[0]) {
                     /* firstly, fit the CSS size into a break point ignoring the multiplier */
                     foreach ($resolutions as $break_point) { /* filter down */
-                        if ($total_width <= $break_point) {
-                        	// Introducing ['scalings'] here
+                        if ($client_width <= $break_point) {
+                        	
+                        	// Introducing ['scalings']
                         	$key = array_search($break_point, $resolutions);
                             $resolution = $scalings[$key];
-                            /* $resolution = $break_point; */
+                            /*$resolution = $break_point;*/
+							
                         }
                     }
                     /* now apply the multiplier */
@@ -502,45 +562,47 @@
                 /* the required image fits into the existing breakpoints in $resolutions */
                 else {
                     foreach ($resolutions as $break_point) { /* filter down */
-                        if ($total_width <= $break_point) {
+                        if ($client_width <= $break_point) {
+							                          	
                             // Use ['scalings'] here too	
                             $key = array_search($break_point, $resolutions);
                             $resolution = $scalings[$key];
-                            /* $resolution = $break_point; */
+                            /*$resolution = $break_point;*/
+					
                         }
                     }
+					$resolution = $resolution * $pixel_density;
                 }
             }
             else { /* pixel density is 1, just fit it into one of the breakpoints */
+            	/*$total_width = $client_width;*/
+												
                 foreach ($resolutions as $break_point) { /* filter down */
-                     if ($total_width <= $break_point) {
+                     if ($client_width <= $break_point) {
+                  		
                     		// Yep: ['scalings']
                         	$key = array_search($break_point, $resolutions);
                             $resolution = $scalings[$key];                    	
-                        	/* $resolution = $break_point; */
-                   	 }
+                        	/*$resolution = $break_point;*/
+					    								
+                   	 		}		
 		        }
             }
-
-            /* recalculate the resolution depending on the image parameters */
-            if(isset($images_param)) {
-                foreach($images_param as $key => $item) {
-                    global $breakpoints;
-                    $width = $breakpoints[$key];
-                    if ($item['unit'] === '%' AND $width * $pixel_density <= $resolution) $resolution_new = $resolution * ($item['val'] / 100);
-                    if ($item['unit'] === 'px' AND $width * $pixel_density <= $resolution) $resolution_new = $item['val'] * $pixel_density;
-                }
-                if(isset($resolution_new)) $resolution = $resolution_new;
-                $resolution = ceil($resolution);
-				}
-				
+     	
+			
 		} /* end of valid cookie stuff */
-    } /* end of cookie detection */
+						
+} /* end of cookie detection */
+
+
+	if ( in_array($resolution, $fullsize_terms) ) { original_requested(); }
+
 
 
     // FALLBACK
 	// When no resolution was found due to no cookie or invalid cookie
     if (!$resolution) {
+    	
         global $fallback, $fallback_mobile, $fallback_desktop;		
 
 		// Use specific fallback resolutions from setup.php
@@ -550,7 +612,10 @@
         
         $resolution = $is_mobile ? $fallback_mobile : $fallback_desktop;
 		$fallback = true;
+		
+
     }
+	
     
     /* if the requested URL starts with a slash, remove the slash */
     /*if(substr($requested_uri, 0,1) == "/") {
