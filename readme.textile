@@ -1,7 +1,7 @@
 This is a fork of Johann Heynes (johannheyne) “Adaptive Images (extendend)”, based on Matthew Wilcox (mattwilcox) original code and idea of “Adaptive Images”. Thank you both!
 
 
-h1. Adaptive Images (über-extended)
+h1. Adaptive Images (über-extended) v2.0
 
 *Adaptive Images* (AI) automatically creates, caches, and delivers device-appropriate versions of a website's content images. "Device-appropriate" in respect to device width and device pixel ratio. It is intended for use with "Responsive Designs":http://www.abookapart.com/products/responsive-web-design and to be combined with "Fluid Images":http://unstoppablerobotninja.com/entry/fluid-images/ techniques.
 
@@ -27,9 +27,8 @@ h2. Benefits of Über-Extention
 * **Extended Size Terms:** provide url query string to generate specific image size; with accordance to visitors screen size
 * **Parallel Mode:** use both together, they are compatible now (=suggested usage by default)
 * **Wordpress Detection Mode:** “Re-retinize” Wordpress images – serve the pre-scaled Wordpress images according to pixel density
-** Drawback of Wordpress Detection Mode: manual cropping in Wordpress’ Image Editor destroys this ability.
 * Has a "sophisticated method":https://github.com/Darkwing371/Adaptive-Images-Uber-Extended/tree/ai-cookie-snippet.js available to detect visitors screen size and pixel density very acurately on newer mobile devices
-	 
+ 
 h2. How It Works
 * One line of JavaScript (uuuh!) sets a small cookie (ooouu!) containing the screen resolution and the pixel density of the users device when the page is about to load.
 * When an image is requested, .htaccess intercepts this request and passes it to adaptive-images.php, performing the logic to serve the appropriate image size.
@@ -103,9 +102,9 @@ h3. The Even More Useful Additions of “Adaptive Images (über-extended)”
 **Wordpress Detection Mode**
 If you set this to true, Adaptive Images (üe) will watch if a file is requested, that goes by the naming convention of **{filename}-{width}x{height}.ext** (for example: testpic-640x480.jpg) – this is the way Wordpress saves the scaled images. In case a high-ppi display is detected and such an image is requested, AI(üe) will notice and intercept this request – and will look for the original image file (without the size suffix) to resize it with this dimensions but taking the pixel density into account. This way you can “re-retinize” your Wordpress images automatically using Adaptive Images.
 
-But note the drawback: when you edit an image (cropping, scaling, flipping) using the Worpdress Image Editor, you “destroy” this ability: Worpdress then saves another file by the naming convention of **{filename}-{hash}-{width}x{height}** (for example: atestpic-e34389845023-200x200.jpg). With this, there is no “big original” file any more and no information about what was done through editing (where did you crop? did you flip?). Wordpress Detection Mode then simply falls back to the normal file requested – skipping the “re-retinification”.
+But note a small **drawback:** when you edit an image (cropping, scaling, flipping) using the built-in Worpdress Image Editor, **you must apply the editing to all image sizes** (means: no extra cropping for the thumbnail!) and you **need to regenerate all image sizes** afterwards – this way you keep all contents consistent and this is the only way the algorithm can perform its special re-resizing. Reason: there is no information about “where did you crop?”, “where did you flip?” available on a file level any more; so there’s no way to determine what part of the original image needs to be magnified/“retinified”. In case something went wrong and an original picture for "retinification” cannot be fount, Wordpress Detection Mode then simply falls back to the normal file requested – skipping the “retinification” process.
 
-Maybe in future improvements and when the project “Wordpress Integration for AI(üe)” is going to start, there might be a chance to hook directly in Wordpress Image Editor end prepare this file for us. But I can’t make promises. 
+Maybe in future improvements and when the project “Wordpress Integration for AI(üe)” is going to start, there might be a chance to hook directly in Wordpress Image Editor and prepare special file for us. But nothing is promised yet. ;) 
 
 
 		
