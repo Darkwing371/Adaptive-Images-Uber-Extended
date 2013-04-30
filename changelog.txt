@@ -1,4 +1,10 @@
-version 2.0 (2013-04-08) -------------------------------------------------------------
+version 2.0.1 (2013-04-30 ------------------------------------------------------------
+
+	* Normalizing and limiting the pixel density to value between 1 and 3
+	  This seems very practical – a trade-off between maximum quality and bandwidth
+	  
+	  
+version 2.0 (2013-04-28) -------------------------------------------------------------
 
 	* Bumped to version 2.0 - infancy is over
 	* Massive rethinking; heavyweight commits; a lot of fixings and feature additions

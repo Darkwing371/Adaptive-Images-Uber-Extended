@@ -590,8 +590,15 @@
 			// General preparations
             $cookie_data   = explode(",", $_COOKIE['resolution']);
             $client_width  = (int) $cookie_data[0]; /* the base resolution (CSS pixels) */
+            
+            // Collect pixel density
             $pixel_density = 1; /* set a default, used for non-retina style JS snippet */
             if ( @$cookie_data[1] ) $pixel_density = $cookie_data[1]; /* the device's pixel density factor (physical pixels per CSS pixel) */
+			// Limit and sanitize pixel density
+			$pixel_density_limit = 3;
+			$pixel_density = ($pixel_density>$pixel_density_limit) ? $pixel_density_limit : $pixel_density;
+			$pixel_density = ($pixel_density<1) ? 1 : $pixel_density;
+			// Make globaly available
 			global $is_highppi;
 			$is_highppi = ($pixel_density <= 1 ) ? false : $pixel_density;  
 			
@@ -649,12 +656,7 @@
         
             /* if pixel density is not 1, then we need to be smart about adapting and fitting into the defined breakpoints */
             if($pixel_density > 1) {
-            	
-				// limit pixel density
-				$pd_limit = 3;
-				$pixel_density = ($pixel_density>$pd_limit) ? $pixel_density=$pd_limit : $pixel_density;
-				
-				
+
 				// In case Classic Behavior is off and no Wordpress detection wanted
 				// Do not make use of screen size and serve original file
 				if (!$enable_resolutions and !$wp) original_requested(false);

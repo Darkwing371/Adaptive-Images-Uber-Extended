@@ -72,11 +72,11 @@
 	
 	// other caching settings
 	$config['browser_cache']        = 60 * 60 * 24;	// period of time in seconds the images will stay in cache of browsers	
-	$config['browser_cache']		= 0;			// enable this line line during developement!
-	$config['prevent_cache']        = TRUE; 		// default: false; true: images will resized on every image request
+	//$config['browser_cache']		= 0;			// enable this line line only during developement!
+	$config['prevent_cache']        = FALSE; 		// default: false; true: images will resized on every image request
 
 	// while developing: inserts information like image dimensions, ratio and the device-width into the image
-	$config['debug_mode']           = TRUE;			// default: false
+	$config['debug_mode']           = FALSE;			// default: false
 
 
 
@@ -137,7 +137,7 @@
 	$config['jpg_quality']          	= 90;			// quality of a generated JPG at device pixel ratio of 1; values: 0 to 100; default: 80
 	$config['jpg_quality_retina']   	= 60;			// use for netvlies' compression trick; 100 to 0; default: 50
 	$config['sharpen']['status']    	= TRUE;			// enables sharpening of resized images
-	$config['sharpen']['amount']    	= 60;			// 0 is none, 30 is pleasant, max is 500
+	$config['sharpen']['amount']    	= 50;			// 0 is none, 30 is pleasant, max is 500
 	$config['sharpen']['progressive']	= TRUE;			// Recalculates sharpening amount according to image shrinking
 	
 	
