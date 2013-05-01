@@ -72,11 +72,11 @@
 	
 	// other caching settings
 	$config['browser_cache']        = 60 * 60 * 24;	// period of time in seconds the images will stay in cache of browsers	
-	//$config['browser_cache']		= 0;			// enable this line line only during developement!
-	$config['prevent_cache']        = FALSE; 		// default: false; true: images will resized on every image request
+	$config['browser_cache']		= 0;			// enable this line line only during developement!
+	$config['prevent_cache']        = TRUE; 		// default: false; true: images will resized on every image request
 
 	// while developing: inserts information like image dimensions, ratio and the device-width into the image
-	$config['debug_mode']           = FALSE;			// default: false
+	$config['debug_mode']           = false;			// default: false
 
 
 
@@ -100,7 +100,7 @@
 	// If one present: recalculate the needed size according to the pixel density
 	// This way, you’re able to "re-retinize" your images
 	// You can use this manually too, by naming images for instance: {thename}-{100x150}.{ext} 
-	$config['wordpress_detection']	=	FALSE;		// default: false
+	$config['wordpress_detection']	=	TRUE;		// default: false
 	
 	
 	
@@ -134,11 +134,12 @@
 	
 							
 	// Some settings concerning the default behavior image quality
-	$config['jpg_quality']          	= 90;			// quality of a generated JPG at device pixel ratio of 1; values: 0 to 100; default: 80
-	$config['jpg_quality_retina']   	= 60;			// use for netvlies' compression trick; 100 to 0; default: 50
+	$config['jpg_quality']          	= 97;			// quality of a generated JPG at device pixel ratio of 1; values: 0 to 100; you want set this to 100 (at least 98) to get good quality with GD lin
+	$config['jpg_quality_retina']   	= 92;			// use this for netvlies' retina compression trick; values: 0 to 100; no need to go too low, slighty lower is sufficent for quality/size trade-off
+	$config['jpg_quality_progressive']	= TRUE;			// adjusts quality according to resulting image size; smaller images (<320): higher quality, bigger images (>1200): lower quality
 	$config['sharpen']['status']    	= TRUE;			// enables sharpening of resized images
-	$config['sharpen']['amount']    	= 50;			// 0 is none, 30 is pleasant, max is 500
-	$config['sharpen']['progressive']	= TRUE;			// Recalculates sharpening amount according to image shrinking
+	$config['sharpen']['amount']    	= 20;			// 0 is none, 30 is pleasant, max is 500; don’t overdo it (>50), it dramatically lowers the jpg quality and increases filesize
+	$config['sharpen']['progressive']	= TRUE;			// Recalculates sharpening amount according to image shrinking amount (cubic curve)
 	
 	
 	// register terms to reserve for serving the full size source image in any case
@@ -183,10 +184,11 @@
 	$setup['zoom']['breakpoints']['normal'] 	= '100%';
 	$setup['zoom']['breakpoints']['large'] 		= '100%';
 	$setup['zoom']['breakpoints']['huge'] 		= '100%';
-	$setup['zoom']['jpg_quality'] 				= 96;
-	$setup['zoom']['jpg_quality_retina'] 		= 70;
+	$setup['zoom']['jpg_quality'] 				= 98;
+	$setup['zoom']['jpg_quality_retina'] 		= 95;
+	$setup['jpg_quality_progressive']			= false;
 	$setup['zoom']['sharpen']['status'] 		= TRUE;
-	$setup['zoom']['sharpen']['amount'] 		= 40;
+	$setup['zoom']['sharpen']['amount'] 		= 15;
 	$setup['zoom']['sharpen']['progressive'] 	= TRUE;
 	$setup['zoom']['fallback']['mobile'] 		= '640px';		// must be pixel
 	$setup['zoom']['fallback']['desktop'] 		= '1440px';		// must be pixel

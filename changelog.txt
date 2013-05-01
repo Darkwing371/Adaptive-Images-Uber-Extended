@@ -1,3 +1,9 @@
+version 2.1. (2013-05-01) ------------------------------------------------------------
+
+	* Determined the best JPG quality settings for the default
+	* Introduces JPG Quality Progressive Setting for a supercool quality/size trade-off
+	
+	
 version 2.0.1 (2013-04-30 ------------------------------------------------------------
 
 	* Normalizing and limiting the pixel density to value between 1 and 3

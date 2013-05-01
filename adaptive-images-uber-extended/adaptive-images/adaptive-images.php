@@ -44,6 +44,7 @@
     $cache_path         = $config['cache_path']; 			// Where to store the generated re-sized images. Specify from your document root!
     $jpg_quality        = $config['jpg_quality']; 			// The quality of any generated JPGs on a scale of 0 to 100
     $jpg_quality_retina = $config['jpg_quality_retina']; 	// The quality of any generated JPGs on a scale of 0 to 100 for retina
+    $jpg_quality_progressive = $config['jpg_quality_progressive']; // Whether to adjust quality according to resulting image size 
     $sharpen            = $config['sharpen']['status']; 	// Shrinking images can blur details, perform a sharpen on re-scaled images?
     $sharpen_amount		= $config['sharpen']['amount'];		// Default amount of sharpening
     $sharpen_progressive= $config['sharpen']['progressive'];// If progressive sharpening is wanted
@@ -164,6 +165,7 @@
 		if ( isset($setup[$_GET['size']]['sharpen']['progressive']))$sharpen_progressive = $setup[$_GET['size']]['sharpen']['progressive'];
         if ( isset($setup[$_GET['size']]['jpg_quality']) ) 			$jpg_quality = $setup[$_GET['size']]['jpg_quality'];
         if ( isset($setup[$_GET['size']]['jpg_quality_retina']) ) 	$jpg_quality_retina = $setup[$_GET['size']]['jpg_quality_retina'];
+		if ( isset($setup[$_GET['size']]['jpg_quality_progressive']) ) 	$jpg_quality_progressive = $setup[$_GET['size']]['jpg_quality_progressive'];
 		if ( isset($setup[$_GET['size']]['fallback']['mobile']) )  	$fallback_mobile = $setup[$_GET['size']]['fallback']['mobile'];
 		if ( isset($setup[$_GET['size']]['fallback']['desktop']) ) 	$fallback_desktop = $setup[$_GET['size']]['fallback']['desktop']; 
     
@@ -349,10 +351,10 @@
 	 
 	// ###################    M A I N   F U N C T I O N   #1   ################### //
 	// Generates the given cache file for the given source file with the given resolution
-    function generateImage($source_file, $cache_file, $resolution) {
+    function generateImage($source_file, $cache_file, $resolution_req) {	/* Renamed $resolution to $resolution_req(ested), to not confuse this with the global variable! */
     
         global $sharpen, $sharpen_amount, $sharpen_progressive;
-		global $jpg_quality, $jpg_quality_retina;
+		global $jpg_quality, $jpg_quality_retina, $jpg_quality_progressive;
 		global $setup_ratio, $wp_setup_ratio;
         global $is_highppi;
 		
@@ -366,13 +368,13 @@
                 /* check again if it really doesn't exist to protect against race conditions */
                 if (!is_dir($cache_dir)) {
                     sendErrorImage("Failed to create cache directory: $cache_dir");
-                }
-            }
-        }
+                	}
+            	}
+        	}
 
         if (!is_writable($cache_dir)) {
             sendErrorImage("The cache directory is not writable: $cache_dir");
-        }
+        	}
 		
 		
         $extension = strtolower(pathinfo($source_file, PATHINFO_EXTENSION));
@@ -394,27 +396,36 @@
         $jpg_quality_high = $jpg_quality;
 		if ($is_highppi) $jpg_quality = $jpg_quality_retina;
 		
-		
+
+		 
 		// TODO! ################
-		// Some clever stuff to only scale and compress when necessary
-		// Or myybe when to serve the original file
+		// When jpg_quality_progressive 
+		// Do some clever stuff to only scale and compress when necessary
+		// Or maybe even serve the original file
 		
-		// Do not compress additionaly, when image is already very small
-		if ( $width <= $resolution and $is_highppi) $jpg_quality = $jpg_quality_high;	
-		if ( $width <= 150 ) $jpg_quality = $jpg_quality_high;
+		if ($jpg_quality_progressive) {
+			
+				// Give slighly higher quality, when requested image is already very small
+				$threshold_min = 320; /* px */
+				if ($resolution_req <= $threshold_min and !$is_highppi) $jpg_quality = ($jpg_quality+1 > 100) ? 100 : $jpg_quality + 1;
+				if ($resolution_req <= $threshold_min*1.5 and $is_highppi) $jpg_quality = ($jpg_quality+2 > 99) ?  99 : $jpg_quality + 2;
+				
+				// Lower quality just a bit more, when image should become relatively huge
+				$threshold_max = 1280; /* px */
+				if ( $resolution_req > $threshold_max and !$is_highppi) $jpg_quality = $jpg_quality - 3;
+				if ( $resolution_req > $threshold_max*1.5 and  $is_highppi) $jpg_quality = $jpg_quality - 2;
+
+				// In case no cropping needs to be done and no high-ppi compression, and no resizing at all: we can serve the source file
+				if (!$setup_ratio and $width <= $resolution_req and !$is_highppi) return $source_file;
+				if (!$wp_setup_ratio and $width <= $resolution_req and !$is_highppi) return $source_file;
 		
-		// Lower quality just a bit more, when image should become relatively huge
-		if ( $width > 1200 and $resolution > 1200 and !$is_highppi) $jpg_quality = $jpg_quality - 15;
-		if ( $width > 1200 and $is_highppi) $jpg_quality = $jpg_quality - 5;
-		
-		// In case no cropping needs to be done and no high-ppi compression, and no resizing at all, we can serve the source file
-		if (!$setup_ratio and $width <= $resolution and !$is_highppi) return $source_file;
-		if (!$wp_setup_ratio and $width <= $resolution and !$is_highppi) return $source_file;
-		
+				}
+
+
 
 		// Progressive Sharpening
 		if ( $sharpen_progressive ) {
-			$factor = $resolution / $width;
+			$factor = $resolution_req / $width;
 			$sharpen_amount = $sharpen_amount * ( 1 - pow($factor,3) );
 			$sharpen_amount = ($sharpen_amount > 0) ? floor($sharpen_amount) : 0;
 			}
@@ -423,11 +434,11 @@
     
         /* We need to resize the source image to the width of the resolution breakpoint we're working with */
         $ratio = $height / $width;
-        if ($width <= $resolution) {
+        if ($width <= $resolution_req) {
         		$new_width  = $width;
         }
         else {
-            	$new_width  = $resolution;
+            	$new_width  = $resolution_req;
         }
     
         $new_height = ceil($new_width * $ratio);
