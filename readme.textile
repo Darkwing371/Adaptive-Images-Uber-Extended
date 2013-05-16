@@ -1,4 +1,4 @@
-This is a fork of Johann Heynes (johannheyne) “Adaptive Images (extendend)”, based on Matthew Wilcox (mattwilcox) original code and idea of “Adaptive Images”. Thank you both!
+This is a fork of Johann Heynes (johannheyne) “Adaptive Images (extendend)”, based on Matthew Wilcox (mattwilcox) original code and idea of “Adaptive Images”. **Thank you both!**
 
 h1. Adaptive Images (über-extended) v2.1
 
@@ -6,44 +6,44 @@ h1. Adaptive Images (über-extended) v2.1
 
 *Adaptive Images (extended)* (AIe) then added (complicated sounding) functionality to control generated image size (and quality and many other details) in respect to given design breakpoints – corresponding to the users device width – via a url query string when the image actually is going to be requested. To set this up, one needed to define the ['terms'] ( = size terms = future query strings) with their additional values and rules inside the new separate file called "setup.php". To achieve that it needed (and has) a slighty different filename structure inside its cache folder.
 
-*Adaptive Images (über-extended)* (AIue) – this fork – now contains minor alterations, further improvements and bugfixes for this concept, the original authors didn’t manage to commit yet – and perchance may eventually become its own new creation by itself with even more added stuff and a lot of highly over-engineered cool features the world so eagerly waited for. ;) 
+*Adaptive Images (über-extended)* (AIüe) – this fork – now contains minor alterations, further improvements and bugfixes for this concept, the original authors didn’t manage to commit yet – and perchance may eventually become its own new creation by itself with even more added stuff and a lot of highly over-engineered cool features the world so eagerly waited for. ;) 
 
 h2. Benefits of Adaptive Images In General
 
 * It safes bandwidth: takes care that your webpage only delivering images at a resolution not higher than the vistor would need (except you want it otherwise).
-* It provides structure: You only need to manage one full res image – NEW: Wordpress Detection Mode!
+* It provides structure: You only need to manage one full res image.
 * It is device agnostic: it works by detecting the size of the visitors screen.
 * It is CMS agnostic: it manages its own image resizing and will work on any CMS or even on flat HTML pages.
 * It is highly configurable:
-** Choose where you want the cached files to be stored
-** Configure directories to ignore, where you don’t want AI to apply
+** Choose where you want the cached files to be stored.
+** Configure directories to ignore, where you don’t want AI to apply.
 
 h2. Benefits of Über-Extention
 
-* **Classic Mode:** just limit image sizes to visitors screen size
-* **Extended Size Terms:** provide url query string to generate specific image size; with accordance to visitors screen size
-* **Parallel Mode:** use both together, they are compatible now (=suggested usage by default)
-* **Wordpress Detection Mode:** “Re-retinize” Wordpress images – serve pre-scaled Wordpress images according to pixel density
-* Has a "sophisticated method":https://github.com/Darkwing371/Adaptive-Images-Uber-Extended/tree/ai-cookie-snippet.js available to detect visitors screen size and pixel density very acurately on newer mobile devices
-* Progressive JPG quality settings: adjust compression/quality according to pixel density ("netvlies’ retina revolution":http://blog.netvlies.nl/design-interactie/retina-revolution/) to have a much better quality/size trade-off
+* **Classic Mode:** just limit image sizes to visitors screen size.
+* **Extended Size Terms:** provide url query string to generate specific image size; with accordance to visitors screen size.
+* **Parallel Mode:** use both together, they are compatible now (=suggested usage by default).
+* **Wordpress Detection Mode:** Serve “re-retinize” Wordpress images according to pixel density.
+* **Progressive JPG Quality Setting:** adjust compression/quality according to pixel density ("netvlies’ retina revolution":http://blog.netvlies.nl/design-interactie/retina-revolution/) to have a much better quality/size trade-off.
+* **New ai-cookie-snippet.js:** a "sophisticated method":https://github.com/Darkwing371/Adaptive-Images-Uber-Extended/tree/ai-cookie-snippet.js to detect visitors screen size and pixel density very acurately on newer mobile devices.
 
 h2. How It Works
-* One line of JavaScript (uuuh!) sets a small cookie (ooouu!) containing the screen resolution and the pixel density of the users device when the page is about to load.
+* A little bit of JavaScript (uuuh!) sets a small cookie (ooouu!) containing the screen resolution and the pixel density of the users device when the page is about to load.
 * When an image is requested, .htaccess intercepts this request and passes it to adaptive-images.php, performing the logic to serve the appropriate image size.
-* In case something should go wrong, there are some clever fallbacks you can count on
+* In case something should go wrong, there are some clever fallbacks you can count on.
 
-For further details on this concept, see Matt Wilcox’ original "Apaptive Images Homepage":http://adaptive-images.com/details.htm.
+For further details on this concept, see Matt Wilcox’ original "Adaptive Images Homepage":http://adaptive-images.com/details.htm.
 And/or see **More Detailed Description** below for comparison between the forks.
 
 h2. Installation
 
-* Add the line of JavaScript you find in *ai-cookie-snippet.js* to your web pages head at the top most position possible.
+* Load *ai-cookie-snippet.js* on your web pages head at the top most position possible.
 * Copy the adaptive-images folder into your web pages root directory.
 * Make sure the permission of the adaptive-images directory and ai-cache subdirectory is (at least) *755*.
 * Copy the .htaccess into your web pages root directory – or copy its code section in the existing .htaccess file.
 * Set up path names in .htaccess with RewriteCond rules, to ignore images in ("blacklist") or simply make a "whitelist" of paths you wish AI to apply in.
 * Just make sure *again* that the last RewriteRule contains the proper path leading to your adaptive-images.php. 
-* Make use of setup.php: read the comments and make your decisions to set AIue up to your projects demand.
+* Make use of setup.php: read through the comments and make your decisions to set AIüe up to your projects demand.
 
 Alternatively put the .htaccess in your images directory for example, and/or the adaptive-images folder somewhere else on your server, but then *make sure that the RewriteRule points to the proper adaptive-images.php location* relative to your directory structure! 
 
@@ -63,7 +63,7 @@ h3. The More Specific Behavior of “Adaptive Images (extended)” by Johann Hey
 
 &#060;img src="image.jpg?size=term" /&#062;
 
-*Breakpoints and sizes*
+*Breakpoints and Sizes*
 Now you can define, what size an image has to have on specific configurable design breakpoints equal to your CSS media queries. Your can give them custom names (the "size term") and set the their widths in pixel or percentage. If you use for instance 100% as a default case, the image will be 100% of the size of the resolution, that is equal or closest higher than the present users device maximum width – but maximum width of the largest configured resolution breakpoint but also not larger than the original full-res image size.
 
 *Cropping (cutting to fit)*
@@ -72,10 +72,10 @@ You can define an aspect ratio for a term. All depending images will be cropped 
 *Sharpening*
 You can define if you want to sharpen the resized images and even the amount of sharpening applied. 0 is no sharpening at all, up to 30 is subtile, more than 30 is really impacting, max is 500 (imagine that!).
 
-*JPEG quality*
+*JPEG Quality*
 You can define the JPEG quality for a size term when device pixel ratio is at 1. If above 1 (=“retina”), you can set a different JPEG compression level – very useful for applying "Netvlies Retina Revolution Trick":http://blog.netvlies.nl/design-interactie/retina-revolution/ if you want to use it. JPEG quality 100: of course is best; down to 70: is pleasant; below 40: really compressed (and small in size).
 
-*Prevent cache*
+*Prevent Cache*
 For developing, you might want to disable caching, to see changes of the setup and the images on every page reload. For this, in setup.php do:
 
 * $config['browser_cache'] = 0;
@@ -83,7 +83,7 @@ For developing, you might want to disable caching, to see changes of the setup a
 
 But remember to turn caching on again, when the site is going live!
 
-*Debug mode*
+*Debug Mode*
 This inserts some information into the generated images like: image dimensions, the aspect ratio, the device-width and pixel density.
 
 h3. The Even More Useful Additions of “Adaptive Images (über-extended)”
@@ -92,18 +92,20 @@ h3. The Even More Useful Additions of “Adaptive Images (über-extended)”
 * Makes use of “scalings”: breakpoint sizes don’t dictate the size of the generated image width any more – if you want to.
 * Request and serve the original image by using special query strings like "?original" or "?size=fullsize".
 * Have a working fallback in case of cookie troubles: set desired fallback widths manually.
-* Use Progressive Sharpening: an amount of sharpening according to the amount of resize work done is applied
+* Use Progressive Sharpening: an amount of sharpening, according to the amount of resize done, is applied.
+* Progressive JPG Quality Setting
 * Wordpress Detection Mode
 
+
 **Wordpress Detection Mode**
-If you set this to true, Adaptive Images (üe) will watch if a file is requested, that goes by the naming convention of {filename}-{width}x{height}.ext (for example: testpic-640x480.jpg) – this is the way Wordpress saves the scaled images. In case a high-ppi display is detected and such an image is requested, AI(üe) will notice and intercept this request – and will look for the original image file (without the size suffix) to resize it with this dimensions but taking the pixel density into account. This way you can “re-retinize” your Wordpress images automatically using Adaptive Images.
+If you set this to true, Adaptive Images (üe) will watch if a file is requested, that goes by the naming convention of {filename}-{width}x{height}.ext (for example: testpic-640x480.jpg) – this is the way Wordpress saves the scaled images. In case a high-ppi display is detected and such an image is requested, AIüe will notice and intercept this request – and will look for the original image file (the one without the size suffix) to resize it with this dimensions, but taking the pixel density into account. This way you can “re-retinize” your Wordpress images automatically using Adaptive Images (üe).
 
 **But note a small drawback:** when you edit an image (cropping, scaling, flipping) using the built-in Worpdress Image Editor, **you must apply the editing to all image sizes** (means: no extra cropping for the thumbnail!) and you **need to regenerate all image sizes** afterwards – only this way you can keep all image contents consistent and this is the only way the algorithm can perform its special re-resizing. Reason: there is no information about “where did you crop?”, “where did you flip?” available on the file level any more; so there’s no way to determine what part of the original image needs to be magnified/“retinified”. In case something went wrong and an original picture for "retinification” cannot be found, Wordpress Detection Mode then simply falls back to the normal file requested – and skipping the “retinification” process.
 
-Maybe in future improvements and when the project “Wordpress Integration for AI(üe)” is going to start, there might be a chance to hook directly in Wordpress Image Editor and prepare special file for us. But nothing is promised yet. ;) 
+Maybe in future improvements and when the project “Wordpress Integration for AIüe” is going to start big time, there *might* be a chance to hook directly in Wordpress Image Editor and prepare some special files for us. But nothing will be promised yet. ;) 
 
-**JPG Quality Progressive Setting**
-After a test series to determine the best quality settings of JPG compression, I found out, that GDlib is very harsh with compression and filesize. It is completely sufficient to have quality set to about 97 for normal images and 92 for high-ppi images. This gives a very good trade-off: “retina” images will just be ≈20% bigger (not 400%) retaining very good quality. **Progressive* now automatically touches this quality setting again, according to the requested image size and present pixel density: I found out, that relatively small images (<320px) benefit a lot from a higher quality setting in terms of resulting visual quiality – the accompanying filesize increase doesn’t matter that much in pracitce. On the other hand, relativela hughe images (>1280) don’t mind if the compression is slightly higher, but benefit a lot from it in terms of file size. So the JPG Quality Progressive Setting takes care of this fact and optimizes both cases to even more serve the best quality and the best file size.    
+**Progressive JPG Quality Setting**
+After a test series to determine the best quality settings of JPG compression, I found out, that GDlib is very harsh with compression and filesize. It is completely sufficient to have quality set to about 97 for normal images and 92 for high-ppi images. This gives a very good trade-off: “retina” images will just be ≈20% bigger (not 400%) retaining very good quality. **Progressive** now automatically touches this quality setting again, according to the requested image size and present pixel density: I found out, that relatively small images (<320px) benefit a lot from a higher quality setting in terms of resulting visual quality – the accompanying filesize increase doesn’t matter that much in practice. On the other hand, relatively huge images (>1280) do not mind if the compression is slightly higher, but do benefit a lot from it in terms of reduced filesize. So the JPG Quality Progressive Setting takes care of this fact and optimizes both cases to even more serve the best quality _and_ the best file size.    
 
 h2. Legal
 
